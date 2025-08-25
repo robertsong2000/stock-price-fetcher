@@ -125,11 +125,16 @@ def display_stock_info(stock_info):
 if __name__ == "__main__":
     # 创建命令行参数解析器
     parser = argparse.ArgumentParser(description='获取股票行情信息')
-    parser.add_argument('stock_code', type=str, help='股票代码，例如: sh601006 或 sz000001')
+    parser.add_argument('stock_codes', type=str, help='股票代码，支持单个或多个代码（用逗号分隔），例如: sh601006 或 sh601006,sz000001')
     
     # 解析命令行参数
     args = parser.parse_args()
     
+    # 分割股票代码
+    stock_code_list = [code.strip() for code in args.stock_codes.split(',')]
+    
     # 获取并显示股票信息
-    stock_info = fetch_stock_info(args.stock_code)
-    display_stock_info(stock_info)
+    for stock_code in stock_code_list:
+        stock_info = fetch_stock_info(stock_code)
+        display_stock_info(stock_info)
+        print("\n" + "="*60 + "\n")
