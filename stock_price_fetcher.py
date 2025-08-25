@@ -66,12 +66,13 @@ def fetch_stock_info(stock_code):
         print(f"发生未知错误: {e}")
         return {}
 
-def display_stock_info(stock_info):
+def display_stock_info(stock_info, brief=False):
     """
     格式化显示股票信息
     
     参数:
     stock_info (dict): 包含股票信息的字典
+    brief (bool): 是否简洁显示，默认为False
     """
     if not stock_info:
         print("没有获取到股票信息")
@@ -87,7 +88,13 @@ def display_stock_info(stock_info):
             stock_info['涨跌额'] = change_amount
             stock_info['涨跌幅'] = f"{change_percent:.2f}%"
     
-    # 显示基本信息
+    if brief:
+        # 简洁模式：一行显示股票名称、当前价格、涨跌幅
+        sign = '+' if stock_info.get('涨跌额', 0) >= 0 else ''
+        print(f"{stock_info['股票名称']}: {stock_info['当前价格']:.2f} {sign}{stock_info.get('涨跌幅', '0.00%')}")
+        return
+    
+    # 详细模式（原有显示逻辑）
     print(f"\n{stock_info['股票名称']} ({stock_info.get('股票代码', '')})")
     print(f"日期: {stock_info['日期']} {stock_info['时间']}")
     print("-" * 50)
@@ -125,16 +132,41 @@ def display_stock_info(stock_info):
 if __name__ == "__main__":
     # 创建命令行参数解析器
     parser = argparse.ArgumentParser(description='获取股票行情信息')
-    parser.add_argument('stock_codes', type=str, help='股票代码，支持单个或多个代码（用逗号分隔），例如: sh601006 或 sh601006,sz000001')
+    parser.add_argument('stock_codes', type=str, nargs='?', help='股票代码，支持单个或多个代码（用逗号分隔），例如: sh601006 或 sh601006,sz000001')
+    parser.add_argument('--brief', '-b', action='store_true', help='简洁模式：仅显示股票名称、当前价格、涨跌幅')
+    parser.add_argument('--file', '-f', type=str, help='从文件读取股票代码列表，每行一个代码')
     
     # 解析命令行参数
     args = parser.parse_args()
     
-    # 分割股票代码
-    stock_code_list = [code.strip() for code in args.stock_codes.split(',')]
+    # 处理股票代码输入
+    stock_code_list = []
+    
+    if args.file:
+        # 从文件读取股票代码
+        try:
+            with open(args.file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    code = line.strip()
+                    if code and not code.startswith('#'):  # 跳过空行和注释行
+                        stock_code_list.append(code)
+        except FileNotFoundError:
+            print(f"错误: 文件 {args.file} 不存在")
+            exit(1)
+        except Exception as e:
+            print(f"读取文件时发生错误: {e}")
+            exit(1)
+    elif args.stock_codes:
+        # 从命令行参数读取股票代码
+        stock_code_list = [code.strip() for code in args.stock_codes.split(',')]
+    else:
+        print("错误: 必须提供股票代码或文件路径")
+        parser.print_help()
+        exit(1)
     
     # 获取并显示股票信息
     for stock_code in stock_code_list:
         stock_info = fetch_stock_info(stock_code)
-        display_stock_info(stock_info)
-        print("\n" + "="*60 + "\n")
+        display_stock_info(stock_info, brief=args.brief)
+        if not args.brief:
+            print("\n" + "="*60 + "\n")
