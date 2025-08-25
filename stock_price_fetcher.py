@@ -164,9 +164,25 @@ if __name__ == "__main__":
         parser.print_help()
         exit(1)
     
-    # 获取并显示股票信息
+    # 获取股票信息并排序
+    stock_infos = []
     for stock_code in stock_code_list:
         stock_info = fetch_stock_info(stock_code)
+        if stock_info:
+            # 计算涨跌幅用于排序
+            if '当前价格' in stock_info and '昨日收盘价' in stock_info:
+                current_price = stock_info['当前价格']
+                prev_close = stock_info['昨日收盘价']
+                if prev_close != 0:
+                    change_percent = (current_price - prev_close) / prev_close
+                    stock_info['_change_percent'] = change_percent
+            stock_infos.append(stock_info)
+    
+    # 按涨幅从高到低排序
+    stock_infos.sort(key=lambda x: x.get('_change_percent', 0), reverse=True)
+    
+    # 显示排序后的股票信息
+    for stock_info in stock_infos:
         display_stock_info(stock_info, brief=args.brief)
         if not args.brief:
             print("\n" + "="*60 + "\n")
